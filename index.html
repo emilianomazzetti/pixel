@@ -115,7 +115,7 @@
 
   <script>
     // URL della Web App Google Apps Script (vedi istruzioni): incollalo qui tra gli apici
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxem4ra3PYKzxd-TLjYPK6hwa_5ZGui9VjAcYiatWVcTQLpSdVoOzhaJRE_uwN0LP7n3g/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwTNWqy1em13_-qKVUEP5cwEMEM-TwUCUNpENR8eMSiSWlNGwiv1J5ruJ-CUVOAlngHNw/exec";
 
     const COLORS = [
       { name: 'BIANCHI', value: '#ffffff', border: '#cbd5e0' },
@@ -328,13 +328,15 @@
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ name: userName, code: codePNG(), drawing: drawingPNG() })
         });
-        const out = await res.json();
+        const txt = await res.text();
+        let out;
+        try { out = JSON.parse(txt); } catch (e) { throw new Error('risposta non valida: ' + txt.replace(/<[^>]*>/g, ' ').trim().slice(0, 150)); }
         if (!out.ok) throw new Error(out.error || 'errore');
         msg.className = 'ok';
         msg.textContent = 'Inviato! Salvato come ' + out.baseName + '.';
       } catch (err) {
         msg.className = 'err';
-        msg.textContent = 'Invio non riuscito. Riprova.';
+        msg.textContent = 'Invio non riuscito: ' + err.message;
       }
       btn.disabled = false;
     }
