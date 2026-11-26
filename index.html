@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulatore Zaplycode</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f0f4f8;
+      --card-bg: #ffffff;
+      --text-color: #2d3748;
+      --border-color: #cbd5e0;
+      --accent-color: #4c51bf;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body { font-family: 'Fredoka', sans-serif; background-color: var(--bg-color); color: var(--text-color); padding: 20px; }
+    header { text-align: center; margin-bottom: 20px; }
+    h1 { color: var(--accent-color); font-size: 2.2rem; }
+    .container { max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 20px; }
+    .controls-bar { width: 100%; background: var(--card-bg); padding: 15px 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 15px; }
+    .control-group { display: flex; align-items: center; gap: 10px; }
+    label { font-weight: 600; }
+    select, button { font-family: 'Fredoka', sans-serif; padding: 8px 14px; border-radius: 8px; border: 2px solid var(--border-color); font-size: 1rem; cursor: pointer; background: white; }
+    button.btn-clear { background-color: #e53e3e; color: white; border: none; font-weight: 600; }
+    button.btn-send { background-color: #38a169; color: white; border: none; font-weight: 700; font-size: 1.15rem; padding: 12px 36px; margin-top: 18px; }
+    button.btn-send:disabled { background-color: #a0aec0; cursor: default; }
+    .main-layout { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 850px) { .main-layout { grid-template-columns: 1fr; } }
+    .panel { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; }
+    .palette { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+    .color-btn { width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.1s; }
+    .color-btn:hover { transform: scale(1.1); }
+    .color-btn.active { transform: scale(1.15); border-color: #2b6cb0; }
+    .grid-wrapper { display: flex; align-items: stretch; gap: 8px; margin-top: 10px; }
+    .row-labels { display: flex; flex-direction: column; justify-content: space-between; }
+    .row-label { display: flex; align-items: center; justify-content: flex-end; font-weight: bold; color: #718096; font-size: 0.9rem; padding-right: 4px; }
+    .pixel-grid { display: grid; border: 2px solid #a0aec0; border-radius: 4px; overflow: hidden; background-color: #ffffff; }
+    .cell { background-color: #ffffff; border: 1px solid #e2e8f0; box-sizing: border-box; cursor: pointer; }
+    .code-box { width: 100%; height: 100%; min-height: 400px; background-color: #1a202c; color: #63b3ed; font-family: 'Fira Code', monospace; padding: 15px; border-radius: 8px; overflow-y: auto; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; }
+    #send-msg { margin-top: 12px; font-weight: 600; min-height: 1.4em; text-align: center; }
+    #send-msg.ok { color: #2f855a; }
+    #send-msg.err { color: #c53030; }
+    #user-label { font-weight: 600; color: var(--accent-color); }
+
+    /* Schermata nome */
+    #name-screen { position: fixed; inset: 0; background: var(--bg-color); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 20px; }
+    .name-card { background: white; padding: 32px; border-radius: 16px; box-shadow: 0 6px 16px rgba(0,0,0,0.1); text-align: center; max-width: 420px; width: 100%; }
+    .name-card h2 { color: var(--accent-color); margin-bottom: 16px; }
+    .name-card input { font-family: 'Fredoka', sans-serif; font-size: 1.2rem; padding: 10px 14px; width: 100%; border: 2px solid var(--border-color); border-radius: 8px; margin-bottom: 16px; user-select: text; text-align: center; }
+    .name-card button { background: var(--accent-color); color: white; border: none; font-weight: 600; font-size: 1.1rem; padding: 10px 30px; }
+    #name-err { color: #c53030; margin-top: 10px; min-height: 1.3em; }
+  </style>
+</head>
+<body>
+
+  <div id="name-screen">
+    <div class="name-card">
+      <h2>Come ti chiami?</h2>
+      <input type="text" id="name-input" maxlength="30" placeholder="Scrivi il tuo nome" autocomplete="off">
+      <button id="btn-enter">Entra</button>
+      <div id="name-err"></div>
+    </div>
+  </div>
+
+  <header>
+    <h1>Simulatore Zaplycode</h1>
+  </header>
+
+  <div class="container">
+    <div class="controls-bar">
+      <div class="control-group">
+        <span>Utente: <span id="user-label"></span></span>
+      </div>
+      <div class="control-group">
+        <label for="grid-size">Dimensione Griglia:</label>
+        <select id="grid-size">
+          <option value="6">6 x 6</option>
+          <option value="8" selected>8 x 8</option>
+          <option value="10">10 x 10</option>
+          <option value="12">12 x 12</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="preset-select">Modelli Predefiniti:</label>
+        <select id="preset-select">
+          <option value="">-- Scegli un disegno --</option>
+          <option value="mela">Mela</option>
+          <option value="casa">Casa</option>
+          <option value="sole">Sole</option>
+          <option value="fiore">Fiore</option>
+          <option value="cuore">Cuore</option>
+        </select>
+      </div>
+      <button class="btn-clear" id="btn-clear">Pulisci Griglia</button>
+    </div>
+
+    <div class="main-layout">
+      <div class="panel">
+        <div class="palette" id="palette"></div>
+        <div class="grid-wrapper">
+          <div class="row-labels" id="row-labels"></div>
+          <div class="pixel-grid" id="pixel-grid"></div>
+        </div>
+        <button class="btn-send" id="btn-send">Invia</button>
+        <div id="send-msg"></div>
+      </div>
+
+      <div class="panel">
+        <h2 style="margin-bottom: 15px; align-self: flex-start; color: var(--accent-color);">Codice Zaplycode</h2>
+        <div class="code-box" id="code-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // URL della Web App Google Apps Script (vedi istruzioni): incollalo qui tra gli apici
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxem4ra3PYKzxd-TLjYPK6hwa_5ZGui9VjAcYiatWVcTQLpSdVoOzhaJRE_uwN0LP7n3g/exec";
+
+    const COLORS = [
+      { name: 'BIANCHI', value: '#ffffff', border: '#cbd5e0' },
+      { name: 'ROSSI', value: '#e53e3e' },
+      { name: 'GIALLI', value: '#ecc94b' },
+      { name: 'BLU', value: '#3182ce' },
+      { name: 'VERDI', value: '#38a169' },
+      { name: 'NERI', value: '#1a202c' },
+      { name: 'ARANCIONI', value: '#dd6b20' },
+      { name: 'MARRONI', value: '#744210' }
+    ];
+
+    let currentSize = 8;
+    let currentColor = COLORS[1];
+    let isMouseDown = false;
+    let gridData = [];
+    let userName = '';
+
+    const PRESETS = {
+      mela: { size: 8, data: [
+        [0,0,0,4,4,0,0,0],[0,0,4,4,0,0,0,0],[0,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0],[0,0,1,0,0,1,0,0]] },
+      casa: { size: 8, data: [
+        [0,0,0,1,1,0,0,0],[0,0,1,1,1,1,0,0],[0,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1],
+        [0,2,2,2,2,2,2,0],[0,2,3,2,2,3,2,0],[0,2,2,2,2,2,2,0],[0,2,2,5,5,2,2,0]] },
+      sole: { size: 8, data: [
+        [2,0,0,2,2,0,0,2],[0,2,0,2,2,0,2,0],[0,0,2,2,2,2,0,0],[2,2,2,2,2,2,2,2],
+        [2,2,2,2,2,2,2,2],[0,0,2,2,2,2,0,0],[0,2,0,2,2,0,2,0],[2,0,0,2,2,0,0,2]] },
+      fiore: { size: 8, data: [
+        [0,1,1,0,0,1,1,0],[1,1,1,1,1,1,1,1],[1,1,2,2,2,2,1,1],[0,1,2,2,2,2,1,0],
+        [0,1,1,4,4,1,1,0],[0,0,0,4,4,0,0,0],[0,0,4,4,4,4,0,0],[0,0,0,4,4,0,0,0]] },
+      cuore: { size: 8, data: [
+        [0,1,1,0,0,1,1,0],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],
+        [0,1,1,1,1,1,1,0],[0,0,1,1,1,1,0,0],[0,0,0,1,1,0,0,0],[0,0,0,0,0,0,0,0]] }
+    };
+
+    // ---------- Schermata nome ----------
+    function cleanName(raw) {
+      return raw.normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .toLowerCase().trim().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    }
+
+    function enter() {
+      const n = cleanName(document.getElementById('name-input').value);
+      if (!n) {
+        document.getElementById('name-err').textContent = 'Scrivi il tuo nome (solo lettere e numeri).';
+        return;
+      }
+      userName = n;
+      document.getElementById('user-label').textContent = document.getElementById('name-input').value.trim();
+      document.getElementById('name-screen').style.display = 'none';
+    }
+    document.getElementById('btn-enter').addEventListener('click', enter);
+    document.getElementById('name-input').addEventListener('keydown', e => { if (e.key === 'Enter') enter(); });
+
+    // ---------- Tavolozza ----------
+    const paletteContainer = document.getElementById('palette');
+    COLORS.forEach((color, index) => {
+      const btn = document.createElement('div');
+      btn.className = `color-btn ${index === 1 ? 'active' : ''}`;
+      btn.style.backgroundColor = color.value;
+      if (color.border) btn.style.borderColor = color.border;
+      btn.title = color.name;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentColor = color;
+      });
+      paletteContainer.appendChild(btn);
+    });
+
+    // ---------- Griglia ----------
+    function initGrid(size) {
+      currentSize = size;
+      gridData = Array(size).fill().map(() => Array(size).fill(0));
+      renderGrid();
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('pixel-grid');
+      const rowLabels = document.getElementById('row-labels');
+      grid.innerHTML = '';
+      rowLabels.innerHTML = '';
+
+      const cellSize = Math.min(350 / currentSize, 40);
+      grid.style.gridTemplateColumns = `repeat(${currentSize}, ${cellSize}px)`;
+      grid.style.gridTemplateRows = `repeat(${currentSize}, ${cellSize}px)`;
+      rowLabels.style.height = `${cellSize * currentSize}px`;
+
+      for (let r = 0; r < currentSize; r++) {
+        const label = document.createElement('div');
+        label.className = 'row-label';
+        label.style.height = `${cellSize}px`;
+        label.textContent = r + 1;
+        rowLabels.appendChild(label);
+
+        for (let c = 0; c < currentSize; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.style.backgroundColor = COLORS[gridData[r][c]].value;
+          cell.addEventListener('mousedown', () => { isMouseDown = true; colorCell(r, c); });
+          cell.addEventListener('mouseenter', () => { if (isMouseDown) colorCell(r, c); });
+          grid.appendChild(cell);
+        }
+      }
+      updateCode();
+    }
+
+    function colorCell(r, c) {
+      gridData[r][c] = COLORS.indexOf(currentColor);
+      renderGrid();
+    }
+
+    document.addEventListener('mouseup', () => isMouseDown = false);
+
+    function getCodeText() {
+      const lines = [];
+      for (let r = 0; r < currentSize; r++) {
+        const segments = [];
+        let count = 0;
+        let colorIdx = gridData[r][0];
+        for (let c = 0; c < currentSize; c++) {
+          if (gridData[r][c] === colorIdx) {
+            count++;
+          } else {
+            segments.push(`${count} ${COLORS[colorIdx].name}`);
+            colorIdx = gridData[r][c];
+            count = 1;
+          }
+        }
+        segments.push(`${count} ${COLORS[colorIdx].name}`);
+        lines.push(`RIGA ${r + 1}: ` + segments.join(', '));
+      }
+      return lines.join('\n');
+    }
+
+    function updateCode() {
+      document.getElementById('code-output').textContent = getCodeText();
+    }
+
+    document.getElementById('grid-size').addEventListener('change', (e) => {
+      document.getElementById('preset-select').value = "";
+      initGrid(parseInt(e.target.value));
+    });
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      document.getElementById('preset-select').value = "";
+      initGrid(currentSize);
+    });
+    document.getElementById('preset-select').addEventListener('change', (e) => {
+      const presetKey = e.target.value;
+      if (!presetKey || !PRESETS[presetKey]) return;
+      const preset = PRESETS[presetKey];
+      currentSize = preset.size;
+      document.getElementById('grid-size').value = preset.size;
+      gridData = preset.data.map(row => [...row]);
+      renderGrid();
+    });
+
+    // ---------- Immagini e invio ----------
+    function drawingPNG() {
+      const cs = 40, pad = 10, n = currentSize;
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = n * cs + pad * 2;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          ctx.fillStyle = COLORS[gridData[r][c]].value;
+          ctx.fillRect(pad + c * cs, pad + r * cs, cs, cs);
+          ctx.strokeStyle = '#cbd5e0';
+          ctx.strokeRect(pad + c * cs, pad + r * cs, cs, cs);
+        }
+      }
+      return cv.toDataURL('image/png');
+    }
+
+    function codePNG() {
+      const lines = getCodeText().split('\n');
+      const fs = 22, lh = 34, pad = 24;
+      const cv = document.createElement('canvas');
+      const ctx = cv.getContext('2d');
+      ctx.font = `500 ${fs}px "Fira Code", monospace`;
+      const w = Math.max(...lines.map(l => ctx.measureText(l).width));
+      cv.width = Math.ceil(w) + pad * 2;
+      cv.height = lines.length * lh + pad * 2;
+      ctx.fillStyle = '#1a202c';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.font = `500 ${fs}px "Fira Code", monospace`;
+      ctx.fillStyle = '#63b3ed';
+      ctx.textBaseline = 'middle';
+      lines.forEach((l, i) => ctx.fillText(l, pad, pad + lh * i + lh / 2));
+      return cv.toDataURL('image/png');
+    }
+
+    async function send() {
+      const msg = document.getElementById('send-msg');
+      const btn = document.getElementById('btn-send');
+      msg.className = '';
+      if (!SCRIPT_URL) {
+        msg.className = 'err';
+        msg.textContent = 'Invio non ancora configurato (manca SCRIPT_URL).';
+        return;
+      }
+      btn.disabled = true;
+      msg.textContent = 'Invio in corso...';
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ name: userName, code: codePNG(), drawing: drawingPNG() })
+        });
+        const out = await res.json();
+        if (!out.ok) throw new Error(out.error || 'errore');
+        msg.className = 'ok';
+        msg.textContent = 'Inviato! Salvato come ' + out.baseName + '.';
+      } catch (err) {
+        msg.className = 'err';
+        msg.textContent = 'Invio non riuscito. Riprova.';
+      }
+      btn.disabled = false;
+    }
+    document.getElementById('btn-send').addEventListener('click', send);
+
+    initGrid(8);
+  </script>
+</body>
+</html>
